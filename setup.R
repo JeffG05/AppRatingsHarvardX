@@ -5,7 +5,10 @@ library(randomForest)
 
 set.seed(1, sample.kind = "Rounding")
 
-data_set <- read.csv("Train.csv", header = TRUE) %>%
+temp <- tempfile()
+download.file("https://raw.githubusercontent.com/JeffG05/AppRatingsHarvardX/master/data.csv", temp)
+
+data_set <- read.csv(temp, header = TRUE) %>%
   group_by(Downloads) %>%
   filter(n() > 1) %>%
   ungroup()
