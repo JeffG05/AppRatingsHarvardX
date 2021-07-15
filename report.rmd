@@ -1,0 +1,6 @@
+---
+title: "Predicting Android App Downloads using Machine Learning"
+author: Jeff Gugelmann
+date: 13/07/2021
+output: pdf_document
+---
