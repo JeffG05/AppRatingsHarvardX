@@ -37,6 +37,7 @@ train_set %>%
   filter(str_starts(Downloads, "1")) %>%
   ggplot(aes(Reviews, Price, color = Downloads)) +
   geom_point() +
+  stat_ellipse() +
   scale_y_log10() +
   scale_x_log10()
 

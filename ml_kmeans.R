@@ -1,60 +1,31 @@
 set.seed(1, sample.kind = "Rounding")
 
-knn_train_data <- train_set %>%
-  mutate(Price = replace_na(as.numeric(Price), 0),
-         Content_Rating = as.numeric(factor(Content_Rating)),
-         Category = as.numeric(factor(Category)),
-         Offered_By = as.numeric(factor(Offered_By)),
-         OS_Version_Required = as.numeric(factor(OS_Version_Required)),
-         Last_Updated_On = as.numeric(as_date(Last_Updated_On, format = "%b %d %Y"))) %>%
-  select(Reviews, Price, Rating, Category, Last_Updated_On, Content_Rating, Offered_By, OS_Version_Required) %>%
-  as.matrix()
+lm_train_data <- train_set %>%
+  mutate(Downloads_Num = parse_number(str_replace(Downloads, "\\+", ""))) %>%
+  select(Reviews, Downloads_Num)
 
-knn_test_data <- test_set %>%
-  mutate(Price = replace_na(as.numeric(Price), 0),
-         Content_Rating = as.numeric(factor(Content_Rating)),
-         Category = as.numeric(factor(Category)),
-         Offered_By = as.numeric(factor(Offered_By)),
-         OS_Version_Required = as.numeric(factor(OS_Version_Required)),
-         Last_Updated_On = as.numeric(as_date(Last_Updated_On, format = "%b %d %Y"))) %>%
-  select(Reviews, Price, Rating, Category, Last_Updated_On, Content_Rating, Offered_By, OS_Version_Required) %>%
-  as.matrix()
+lm_test_data <- test_set %>%
+  mutate(Downloads_Num = parse_number(str_replace(Downloads, "\\+", ""))) %>%
+  select(Reviews, Downloads_Num)
 
-knn_y <- train_set %>%
-  select(Downloads) %>%
-  as.matrix() %>%
-  factor()
+fit_lm <- lm(Downloads_Num ~ Reviews, data = lm_train_data)
 
-knn_y_test <- test_set %>%
-  select(Downloads) %>%
-  as.matrix() %>%
-  factor()
+y_hat_lm <- predict(fit_lm, lm_test_data)
 
-knn_accuracy <- sapply(seq(2, 8), function(col) {
-  knn_x <- knn_train_data[, 1:col]
-  knn_x_test <- knn_test_data[, 1:col]
-
-  index <- sample(nrow(knn_x), 2000)
-  train_knn <- train(knn_x[index,],
-                  knn_y[index],
-                  method = "knn",
-                  tuneGrid = data.frame(k = seq(3, 200, 2)))
-  fit_knn <- knn3(knn_x, knn_y, k = train_knn$bestTune$k)
-
-  y_hat_knn <- predict(fit_knn, knn_x_test, type = "class")
-  cm_knn <- confusionMatrix(y_hat_knn, knn_y_test)
-  cm_knn$overall["Accuracy"]
+possible_values <- train_set %>%
+  pull(Downloads) %>%
+  unique() %>%
+  data.frame(Downloads = .) %>%
+  mutate(Downloads_Num = parse_number(str_replace(Downloads, "\\+", "")))
+y_hat_lm_banded <- sapply(y_hat_lm, function (prediction) {
+  distances <- sapply(possible_values$Downloads_Num, function (possible) {
+    abs(possible - prediction)
+  })
+  possible_values$Downloads[which.min(distances)]
 })
 
-best_knn_x <- knn_train_data[, 1:4]
-best_knn_x_test <- knn_test_data[, 1:4]
-best_index <- sample(nrow(best_knn_x), 2000)
-best_train_knn <- train(best_knn_x[index,],
-                knn_y[index],
-                method = "knn",
-                tuneGrid = data.frame(k = seq(3, 200, 2)))
-best_fit_knn <- knn3(best_knn_x, knn_y, k = best_train_knn$bestTune$k)
-best_p_hat_knn <- predict(best_fit_knn, best_knn_x_test, type = "prob")
+data.frame(pred = y_hat_lm_banded, actual = test_set$Downloads)
 
+cm_lm <- confusionMatrix(factor(y_hat_lm_banded), factor(test_set$Downloads))
 
 

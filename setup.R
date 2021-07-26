@@ -2,6 +2,7 @@ library(caret)
 library(tidyverse)
 library(lubridate)
 library(randomForest)
+library(knitr)
 
 set.seed(1, sample.kind = "Rounding")
 
